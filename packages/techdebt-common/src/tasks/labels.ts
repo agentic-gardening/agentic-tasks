@@ -89,15 +89,16 @@ export function epicTitle(pkg: string, target: string): string {
   return `[dep] ${pkg} -> ${target}`;
 }
 
-export function taskTitle(owner: string, name: string): string {
-  return `[repo] ${owner}/${name}`;
+export function taskTitle(owner: string, name: string, pkg: string, target: string): string {
+  return `[repo] ${owner}/${name}: ${pkg} -> ${target}`;
 }
 
 export function parseTaskTitle(title: string): { owner: string; name: string } | undefined {
   const prefix = '[repo] ';
   const trimmed = title.trim();
   if (!trimmed.startsWith(prefix)) return undefined;
-  const parts = trimmed.slice(prefix.length).split('/');
+  // older titles have no ": pkg -> target" suffix
+  const parts = trimmed.slice(prefix.length).split(':')[0].split('/');
   if (parts.length !== 2 || parts.some(p => p.length === 0 || /\s/.test(p))) return undefined;
   return { owner: parts[0], name: parts[1] };
 }

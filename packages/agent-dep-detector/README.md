@@ -3,15 +3,15 @@
 Finds outdated dependencies in the repositories listed by
 [agent-repo-catalog](https://github.com/agentic-gardening/agent-repo-catalog) and opens tickets in
 [agentic-gardening/agentic-tasks](https://github.com/agentic-gardening/agentic-tasks): one **Epic** per
-`package -> target` and one **Task** sub-issue per repository.
+`package -> target` and one **Task** sub-issue per repository
+(`[repo] owner/name: vitest -> 5`).
 
 ## Rules
 
 | situation | epic | reason |
 |---|---|---|
 | a newer **major** exists | `[dep] vitest -> 5` | `major` |
-| newer minor/patch, released 5+ days ago, open dependabot PR looks stuck (red, force-pushed by dependabot, 7+ days between creation and last update) | `[dep] eslint-plugin-sonarjs -> 4.2.2` | `failing-dependabot` |
-| newer minor/patch, released 5+ days ago, no open dependabot PR | same | `stale` |
+| newer minor/patch, released 20+ days ago, no open dependabot PR | `[dep] eslint-plugin-sonarjs -> 4.2.2` | `stale` |
 
 - `pnpm` is tracked through the `packageManager` field (version part only).
 - `@types/node` never targets a major above the repository's `engines.node`.

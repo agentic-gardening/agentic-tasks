@@ -26,28 +26,3 @@ describe('parsePackages', () => {
     ]);
   });
 });
-
-describe('toPullRequest', () => {
-  const node = (
-    state: string | undefined,
-    forcePushes: number,
-    updatedAt = '2026-10-09T00:00:00Z',
-  ): Parameters<typeof DependabotService.toPullRequest>[0] => ({
-    number: 5,
-    url: 'u',
-    title: 'chore(deps): bump vitest from 4.1.4 to 5.0.3',
-    body: '',
-    createdAt: '2026-10-01T00:00:00Z',
-    updatedAt,
-    repository: { nameWithOwner: 'o/r' },
-    commits: { nodes: [{ commit: { statusCheckRollup: state ? { state } : null } }] },
-    timelineItems: { totalCount: forcePushes },
-  });
-  test('failing needs red checks, at least one force-push and a 7+ day span', () => {
-    expect(DependabotService.toPullRequest(node('FAILURE', 2, '2026-10-03T00:00:00Z')).failing).toBe(false);
-    expect(DependabotService.toPullRequest(node('FAILURE', 1)).failing).toBe(true);
-    expect(DependabotService.toPullRequest(node('FAILURE', 0)).failing).toBe(false);
-    expect(DependabotService.toPullRequest(node('SUCCESS', 3)).failing).toBe(false);
-    expect(DependabotService.toPullRequest(node(undefined, 3)).failing).toBe(false);
-  });
-});

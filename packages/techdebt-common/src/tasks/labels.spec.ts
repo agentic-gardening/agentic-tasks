@@ -40,10 +40,14 @@ describe('techdebt block', () => {
 describe('titles', () => {
   test('epic and task titles are ascii', () => {
     expect(epicTitle('eslint-plugin-sonarjs', '4.2.2')).toBe('[dep] eslint-plugin-sonarjs -> 4.2.2');
-    expect(taskTitle('minc-org', 'minc-extension')).toBe('[repo] minc-org/minc-extension');
+    expect(taskTitle('minc-org', 'minc-extension', 'vitest', '5')).toBe('[repo] minc-org/minc-extension: vitest -> 5');
   });
   test('parses task title', () => {
     expect(parseTaskTitle('[repo] minc-org/minc-extension')).toStrictEqual({
+      owner: 'minc-org',
+      name: 'minc-extension',
+    });
+    expect(parseTaskTitle('[repo] minc-org/minc-extension: @types/node -> 26')).toStrictEqual({
       owner: 'minc-org',
       name: 'minc-extension',
     });

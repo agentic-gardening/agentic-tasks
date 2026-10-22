@@ -37,7 +37,7 @@ export class OutdatedDecider {
     options: DeciderOptions = {},
   ): Finding[] {
     const now = options.now ?? new Date();
-    const staleMs = (options.staleAfterDays ?? 5) * DAY_MS;
+    const staleMs = (options.staleAfterDays ?? 20) * DAY_MS;
     const findings: Finding[] = [];
     const prs = pullRequests.filter(pr => pr.repository === repository);
 
@@ -66,26 +66,15 @@ export class OutdatedDecider {
       const published = info.publishedAt[latestInMajor];
       if (!published || now.getTime() - new Date(published).getTime() < staleMs) continue;
 
-      const open = prs.filter(pr => pr.packages.includes(name));
-      if (open.some(pr => pr.failing)) {
-        findings.push({
-          repository,
-          package: name,
-          current,
-          target: latestInMajor,
-          epicTarget: latestInMajor,
-          reason: 'failing-dependabot',
-        });
-      } else if (open.length === 0) {
-        findings.push({
-          repository,
-          package: name,
-          current,
-          target: latestInMajor,
-          epicTarget: latestInMajor,
-          reason: 'stale',
-        });
-      }
+      if (prs.some(pr => pr.packages.includes(name))) continue;
+      findings.push({
+        repository,
+        package: name,
+        current,
+        target: latestInMajor,
+        epicTarget: latestInMajor,
+        reason: 'stale',
+      });
     }
     return findings;
   }

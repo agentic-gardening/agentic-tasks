@@ -39,7 +39,7 @@ describe('apply', () => {
     const report = await service.apply([finding], cache, manifests, false);
     expect(report).toStrictEqual({
       epicsCreated: ['[dep] vitest -> 5'],
-      tasksCreated: ['[dep] vitest -> 5 :: [repo] o/r'],
+      tasksCreated: ['[dep] vitest -> 5 :: [repo] o/r: vitest -> 5'],
       tasksClosed: [],
     });
     expect(issues.create.mock.calls[0][0]).toMatchObject({
@@ -50,7 +50,7 @@ describe('apply', () => {
     expect(issues.create.mock.calls[0][0].body).toContain(
       '<!-- techdebt\nkind: dependency\npackage: vitest\ntarget: 5\nreason: major\n-->',
     );
-    expect(issues.create.mock.calls[1][0]).toMatchObject({ type: 'Task', title: '[repo] o/r' });
+    expect(issues.create.mock.calls[1][0]).toMatchObject({ type: 'Task', title: '[repo] o/r: vitest -> 5' });
     expect(issues.addSubIssue).toHaveBeenCalledWith(expect.objectContaining({ id: 'E', number: 10 }), {
       id: 'T',
       number: 11,
@@ -64,7 +64,7 @@ describe('apply', () => {
       id: 'E',
       number: 10,
       state: 'OPEN',
-      subIssues: [{ title: '[repo] o/r', state: 'OPEN' }],
+      subIssues: [{ title: '[repo] o/r: vitest -> 5', state: 'OPEN' }],
     });
     const report = await service.apply([finding], { '[dep] vitest -> 5': 10 }, manifests, false);
     expect(report.epicsCreated).toStrictEqual([]);
@@ -81,7 +81,7 @@ describe('apply', () => {
     const cache = { '[dep] vitest -> 5': 10 };
     const report = await service.apply([finding], cache, manifests, false);
     expect(report.epicsCreated).toStrictEqual(['[dep] vitest -> 5']);
-    expect(report.tasksCreated).toStrictEqual(['[dep] vitest -> 5 :: [repo] o/r']);
+    expect(report.tasksCreated).toStrictEqual(['[dep] vitest -> 5 :: [repo] o/r: vitest -> 5']);
     expect(cache).toStrictEqual({ '[dep] vitest -> 5': 20 });
   });
 
@@ -89,7 +89,7 @@ describe('apply', () => {
     issues.findByTitle.mockResolvedValue(undefined);
     const report = await service.apply([finding], {}, manifests, true);
     expect(report.epicsCreated).toStrictEqual(['[dep] vitest -> 5']);
-    expect(report.tasksCreated).toStrictEqual(['[dep] vitest -> 5 :: [repo] o/r']);
+    expect(report.tasksCreated).toStrictEqual(['[dep] vitest -> 5 :: [repo] o/r: vitest -> 5']);
     expect(issues.create).not.toHaveBeenCalled();
     expect(issues.addSubIssue).not.toHaveBeenCalled();
   });

@@ -8,8 +8,6 @@ export interface DependabotPullRequest {
   url: string;
   title: string;
   packages: string[];
-  /** stuck: latest checks are red, dependabot force-pushed at least once, and 7+ days between creation and last update */
-  failing: boolean;
 }
 
 interface SearchNode {
@@ -17,15 +15,10 @@ interface SearchNode {
   url: string;
   title: string;
   body: string;
-  createdAt: string;
-  updatedAt: string;
   repository: { nameWithOwner: string };
-  commits: { nodes: { commit: { statusCheckRollup: { state: string } | null } }[] };
-  timelineItems: { totalCount: number };
 }
 
 const BATCH = 10;
-const STUCK_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Open dependabot PRs for the watched repositories, batched search queries. */
 @injectable()
@@ -45,10 +38,8 @@ export class DependabotService {
           search(query: $q, type: ISSUE, first: 100) {
             nodes {
               ... on PullRequest {
-                number url title body createdAt updatedAt
+                number url title body
                 repository { nameWithOwner }
-                commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
-                timelineItems(itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT]) { totalCount }
               }
             }
           }
@@ -67,15 +58,12 @@ export class DependabotService {
   }
 
   static toPullRequest(node: SearchNode): DependabotPullRequest {
-    const rollup = node.commits.nodes[0]?.commit.statusCheckRollup?.state;
-    const span = new Date(node.updatedAt).getTime() - new Date(node.createdAt).getTime();
     return {
       repository: node.repository.nameWithOwner,
       number: node.number,
       url: node.url,
       title: node.title,
       packages: DependabotService.parsePackages(node.title, node.body ?? ''),
-      failing: rollup === 'FAILURE' && node.timelineItems.totalCount >= 1 && span >= STUCK_AFTER_MS,
     };
   }
 

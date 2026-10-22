@@ -38,7 +38,7 @@ export class DetectorMain {
     console.log(`registry: ${packages.size} packages`);
 
     const pullRequests = await this.dependabot.openPullRequests(repositories);
-    console.log(`dependabot: ${pullRequests.length} open PRs, ${pullRequests.filter(pr => pr.failing).length} failing`);
+    console.log(`dependabot: ${pullRequests.length} open PRs`);
 
     const findings = repositories.flatMap(repository =>
       this.decider.decide(fullName(repository), manifests[fullName(repository)], registry, pullRequests),

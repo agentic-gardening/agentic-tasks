@@ -52,7 +52,7 @@ export class TicketService {
       const children = epic.subIssues;
       for (const finding of group) {
         const [owner, name] = finding.repository.split('/');
-        const childTitle = taskTitle(owner, name);
+        const childTitle = taskTitle(owner, name, finding.package, finding.epicTarget);
         if (children.some(c => c.title === childTitle)) continue;
         report.tasksCreated.push(`${title} :: ${childTitle}`);
         if (dryRun) continue;

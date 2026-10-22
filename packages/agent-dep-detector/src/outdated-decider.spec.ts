@@ -6,8 +6,8 @@ import { OutdatedDecider } from './outdated-decider';
 import type { RegistryCache } from './registry-service';
 
 const now = new Date('2026-10-18T00:00:00Z');
-const old = '2026-10-01T00:00:00Z';
-const fresh = '2026-10-16T00:00:00Z';
+const old = '2026-09-23T00:00:00Z'; // 25 days
+const fresh = '2026-10-08T00:00:00Z'; // 10 days, under the 20-day threshold
 const decider = new OutdatedDecider();
 
 function manifest(dependencies: Record<string, string>, extra: Partial<Manifest> = {}): Manifest {
@@ -17,8 +17,8 @@ function info(latestByMajor: Record<string, string>, publishedAt: Record<string,
   const latest = Object.values(latestByMajor).at(-1) ?? '0.0.0';
   return { latest, latestByMajor, publishedAt, fetchedAt: now.toISOString() };
 }
-function pr(packages: string[], failing: boolean): DependabotPullRequest {
-  return { repository: 'o/r', number: 1, url: 'u', title: 't', packages, failing };
+function pr(packages: string[]): DependabotPullRequest {
+  return { repository: 'o/r', number: 1, url: 'u', title: 't', packages };
 }
 
 describe('decide', () => {
@@ -45,12 +45,11 @@ describe('decide', () => {
     });
   });
 
-  test('stale minor with a green open dependabot PR -> nothing; with a failing one -> failing-dependabot', () => {
+  test('stale minor with an open dependabot PR in that repository -> nothing', () => {
     const registry = { sonarjs: info({ '4': '4.2.2' }, { '4.2.2': old }) };
     const m = manifest({ sonarjs: '^4.0.3' });
-    expect(decider.decide('o/r', m, registry, [pr(['sonarjs'], false)], { now })).toStrictEqual([]);
-    expect(decider.decide('o/r', m, registry, [pr(['sonarjs'], true)], { now })[0]?.reason).toBe('failing-dependabot');
-    expect(decider.decide('other/r', m, registry, [pr(['sonarjs'], true)], { now })[0]?.reason).toBe('stale');
+    expect(decider.decide('o/r', m, registry, [pr(['sonarjs'])], { now })).toStrictEqual([]);
+    expect(decider.decide('other/r', m, registry, [pr(['sonarjs'])], { now })[0]?.reason).toBe('stale');
   });
 
   test('@types/node is capped by engines.node', () => {
