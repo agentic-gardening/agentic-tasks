@@ -19,6 +19,7 @@ concurrency:
 
 permissions:
   contents: write
+  issues: write
 
 defaults:
   run:
@@ -43,6 +44,5 @@ jobs:
         env:
           # GITHUB_TOKEN: push the state branch of this repository
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # TECHDEBTY_TOKEN (org secret, classic PAT of podman-desktop-bot, repo + workflow scopes)
-          READ_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          READ_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TASKS_TOKEN: ${{ secrets.GITHUB_TOKEN }}

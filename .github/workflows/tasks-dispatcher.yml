@@ -13,6 +13,8 @@ concurrency:
 
 permissions:
   contents: write
+  issues: write
+  actions: write
 
 defaults:
   run:
@@ -35,6 +37,6 @@ jobs:
         run: node dist/entrypoint.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          DISPATCH_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          TASKS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISPATCH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPROVER: benoitf

@@ -7,8 +7,8 @@ import { IssueEventPoller } from './issue-event-poller';
 
 export const APPROVER = Symbol.for('agent-tasks-dispatcher.approver');
 
-// hardcoded: the tasks token can't read collaborator permissions (403)
-const ALLOWED_ACTORS = new Set(['benoitf', 'debtbuster']);
+// hardcoded: GITHUB_TOKEN can't read collaborator permissions; 'github-actions' is its GraphQL login
+const ALLOWED_ACTORS = new Set(['benoitf', 'github-actions']);
 
 interface Cursor {
   since?: string;

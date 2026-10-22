@@ -19,6 +19,6 @@ No LLM. Needs `git` and `pnpm` on the runner.
 
 | name | required | purpose |
 |---|---|---|
-| `TECHDEBTY_TOKEN` | org secret | classic PAT of `podman-desktop-bot` (`repo`, `workflow`): issues on `tasks`, read PRs, push rebased branches to the bot's forks |
+| `GITHUB_TOKEN` | workflow | `issues: write` on this repository, reads public PRs. It cannot push rebased branches to forks |
 
-`BOT_LOGIN` env (default `podman-desktop-bot`): PRs closed by this login are not treated as "skipped by a human". Workflow env vars `TASKS_TOKEN` and `BOT_TOKEN` are both fed from `TECHDEBTY_TOKEN`.
+`BOT_LOGIN` env (workflow sets `github-actions[bot]`): PRs closed by this login are not treated as "skipped by a human". Workflow env vars `TASKS_TOKEN` and `BOT_TOKEN` are both fed from `GITHUB_TOKEN`.

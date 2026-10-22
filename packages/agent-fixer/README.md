@@ -22,7 +22,7 @@ generated-by line.
 | `AGENTIC_GCP_WIF_PROVIDER` | yes | GCP Workload Identity provider; its condition must allow `agentic-gardening/agentic-tasks` `.github/workflows/fixer.yml`; principal needs `roles/aiplatform.user` |
 | `AGENTIC_GCP_PROJECT_ID` | yes | GCP project for Vertex AI |
 | `AGENTIC_GCP_REGION` | yes (variable) | Vertex AI region |
-| `TECHDEBTY_TOKEN` | org secret | classic PAT of `podman-desktop-bot` (`repo`, `workflow`): issues on `tasks`, fork, push, open PRs, comment `@dependabot rebase` |
+| `GITHUB_TOKEN` | workflow | `issues: write` on this repository. It cannot fork, push or open PRs on target repositories: those steps fail until the fixer gets a cross-repo identity |
 
 ## Local
 

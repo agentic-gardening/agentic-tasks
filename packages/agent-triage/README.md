@@ -26,4 +26,4 @@ The playbook `docs/DEPENDENCY_FIX_PLAYBOOK.md` is the knowledge base; agent-fixe
 | `AGENTIC_GCP_WIF_PROVIDER` | yes | GCP Workload Identity provider; its condition must allow `agentic-gardening/agentic-tasks` `.github/workflows/triage.yml`; principal needs `roles/aiplatform.user` |
 | `AGENTIC_GCP_PROJECT_ID` | yes | GCP project for Vertex AI |
 | `AGENTIC_GCP_REGION` | yes (variable) | Vertex AI region |
-| `TECHDEBTY_TOKEN` | org secret | classic PAT of `podman-desktop-bot` (`repo`, `workflow`): read the epic, comment, relabel on `tasks`; open playbook PRs here |
+| `GITHUB_TOKEN` | workflow | read the epic, comment, relabel; `contents` + `pull-requests: write` for playbook PRs (needs "Allow GitHub Actions to create pull requests") |

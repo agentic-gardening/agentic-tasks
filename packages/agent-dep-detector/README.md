@@ -31,8 +31,7 @@ metadata with ETags), `issues.json` (epic title to issue number), `last-run.txt`
 
 | name | required | purpose |
 |---|---|---|
-| `GITHUB_TOKEN` | automatic | push the `state` branch; fallback read token for public repositories |
-| `TECHDEBTY_TOKEN` | org secret | classic PAT of `podman-desktop-bot` (`repo`, `workflow`): reads catalogued repositories, writes issues on `agentic-gardening/agentic-tasks` |
+| `GITHUB_TOKEN` | workflow | `contents: write` (state branch), `issues: write` (epics/tasks); reads the public catalogued repositories |
 
 ## Local dry run
 

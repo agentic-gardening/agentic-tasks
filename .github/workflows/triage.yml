@@ -13,7 +13,9 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
+  issues: write
+  pull-requests: write
   id-token: write
 
 defaults:
@@ -47,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # the playbook PR pushes with TECHDEBTY_TOKEN; a persisted GITHUB_TOKEN header would win
+          # the playbook PR pushes with an explicit token URL; a persisted credential header would win
           persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -73,8 +75,8 @@ jobs:
             gh pr list --repo "$repo" --author app/dependabot --state open --json number,title,url > "$WORK/dependabot-prs.json"
           fi
         env:
-          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          GH_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          TASKS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install OpenShell
         run: |
@@ -264,7 +266,7 @@ jobs:
       - name: Comment, relabel, playbook PR
         if: ${{ !cancelled() && steps.sandbox.outputs.name }}
         env:
-          GH_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           tasks=agentic-gardening/agentic-tasks
@@ -287,8 +289,8 @@ jobs:
             target=$(jq -r '.epic.block.target // "epic"' triage-context.json | tr -c 'A-Za-z0-9._\n-' '-')
             branch="playbook/${pkg}-${target}"
             cp "$WORK/playbook.md" docs/DEPENDENCY_FIX_PLAYBOOK.md
-            git config user.name podman-desktop-bot
-            git config user.email podman-desktop-bot@users.noreply.github.com
+            git config user.name "github-actions[bot]"
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
             git checkout -b "$branch"
             git commit -s -am "docs(playbook): ${pkg} ${target} from triage of ${tasks}#${ISSUE}"
             git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"

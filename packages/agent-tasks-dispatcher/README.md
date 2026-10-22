@@ -21,7 +21,6 @@ Events from actors without write access are ignored.
 
 | name | required | purpose |
 |---|---|---|
-| `GITHUB_TOKEN` | automatic | push the `state` branch (cursor, keep-alive) |
-| `TECHDEBTY_TOKEN` | org secret | classic PAT of `podman-desktop-bot` (`repo`, `workflow`): issues on `tasks`, `workflow_dispatch` on `agent-triage` and `agent-fixer` |
+| `GITHUB_TOKEN` | workflow | `issues: write`, `actions: write` (`workflow_dispatch` of `triage.yml` / `fixer.yml`), `contents: write` (state branch) |
 
-`APPROVER` env (default `benoitf`) is the only login allowed to add `state/approved`. Workflow env vars `TASKS_TOKEN` and `DISPATCH_TOKEN` are both fed from `TECHDEBTY_TOKEN`.
+`APPROVER` env (default `benoitf`) is the only login allowed to add `state/approved`. Workflow env vars `TASKS_TOKEN` and `DISPATCH_TOKEN` are both fed from `GITHUB_TOKEN`.

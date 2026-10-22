@@ -18,6 +18,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write
   id-token: write
 
 defaults:
@@ -43,9 +44,9 @@ jobs:
       - id: plan
         run: node dist/plan.js --issue "${{ inputs.issue }}" ${{ inputs.only && format('--only {0}', inputs.only) || '' }} --out fix-plan.json
         env:
-          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          BOT_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          BOT_LOGIN: podman-desktop-bot
+          TASKS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_LOGIN: github-actions[bot]
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: fix-plan
@@ -101,7 +102,7 @@ jobs:
           cp fix-plan.json "$WORK/"
           cp ../agent-triage/docs/DEPENDENCY_FIX_PLAYBOOK.md "$WORK/playbook.md"
         env:
-          GH_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install OpenShell
         run: |
@@ -289,9 +290,9 @@ jobs:
       - name: Verify, push and open PR
         run: node dist/finish.js --task "${{ matrix.task }}" --workdir "$WORK/target" --plan fix-plan.json
         env:
-          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          BOT_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          BOT_LOGIN: podman-desktop-bot
+          TASKS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_LOGIN: github-actions[bot]
 
   epic:
     needs: [plan, fix]
@@ -308,5 +309,5 @@ jobs:
       - run: pnpm build
       - run: node dist/epic.js --issue "${{ inputs.issue }}"
         env:
-          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          BOT_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          TASKS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_TOKEN: ${{ secrets.GITHUB_TOKEN }}

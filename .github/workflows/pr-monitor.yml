@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write
 
 defaults:
   run:
@@ -35,6 +36,6 @@ jobs:
       - name: Monitor fix pull requests
         run: node dist/entrypoint.js
         env:
-          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          BOT_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
-          BOT_LOGIN: podman-desktop-bot
+          TASKS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_LOGIN: github-actions[bot]
