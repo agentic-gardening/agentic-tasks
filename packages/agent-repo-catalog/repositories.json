@@ -1,79 +1,26 @@
 [
   {
     "owner": "agentic-gardening",
-    "name": "agent-dep-detector",
+    "name": "agentic-tasks",
     "default_branch": "main",
-    "head": "092c3dc046cc132e8088e24cb608cd77ce977354",
+    "head": "3a81c6bdd58ed7c520480f87f82b982b339697bc",
     "package_json_paths": [
-      "package.json"
+      "package.json",
+      "packages/agent-dep-detector/package.json",
+      "packages/agent-fixer/package.json",
+      "packages/agent-pr-monitor/package.json",
+      "packages/agent-repo-catalog/package.json",
+      "packages/agent-tasks-dispatcher/package.json",
+      "packages/agent-triage/package.json",
+      "packages/techdebt-common/package.json"
     ],
     "bot_has_write": false
-  },
-  {
-    "owner": "agentic-gardening",
-    "name": "agent-fixer",
-    "default_branch": "main",
-    "head": "c32241d91a0a2b21e00b30f54436e203cf078dce",
-    "package_json_paths": [
-      "package.json"
-    ],
-    "bot_has_write": true
-  },
-  {
-    "owner": "agentic-gardening",
-    "name": "agent-pr-monitor",
-    "default_branch": "main",
-    "head": "d19d4e68a97784e065e06390f94094f0b6b3e254",
-    "package_json_paths": [
-      "package.json"
-    ],
-    "bot_has_write": false
-  },
-  {
-    "owner": "agentic-gardening",
-    "name": "agent-repo-catalog",
-    "default_branch": "main",
-    "head": "4b425ff45b8f32343bf08312bc25764407f99b3f",
-    "package_json_paths": [
-      "package.json"
-    ],
-    "bot_has_write": false
-  },
-  {
-    "owner": "agentic-gardening",
-    "name": "agent-tasks-dispatcher",
-    "default_branch": "main",
-    "head": "d636f4bf50e1fa40fefb78e5abcb81d5d6adca7f",
-    "package_json_paths": [
-      "package.json"
-    ],
-    "bot_has_write": false
-  },
-  {
-    "owner": "agentic-gardening",
-    "name": "agent-triage",
-    "default_branch": "main",
-    "head": "027b05033673e51a52a0eeafc55965f8bcc8ddf3",
-    "package_json_paths": [
-      "package.json"
-    ],
-    "bot_has_write": true
   },
   {
     "owner": "agentic-gardening",
     "name": "demo-repository",
     "default_branch": "main",
     "head": "0714f8e592322d746db84f6f48b97067ad9a1332",
-    "package_json_paths": [
-      "package.json"
-    ],
-    "bot_has_write": false
-  },
-  {
-    "owner": "agentic-gardening",
-    "name": "techdebt-common",
-    "default_branch": "main",
-    "head": "e11f53ee69f92e63d93e34fee2f1f1afb4d2c9b8",
     "package_json_paths": [
       "package.json"
     ],
