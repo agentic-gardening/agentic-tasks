@@ -5,7 +5,7 @@ The agentic-gardening tech-debt agents, in one pnpm workspace. This repository's
 | package | workflow | what it does |
 | --- | --- | --- |
 | [techdebt-common](packages/techdebt-common) | | shared library (GitHub clients, issue tracker, state branch) |
-| [agent-repo-catalog](packages/agent-repo-catalog) | [repo-catalog.yml](.github/workflows/repo-catalog.yml) | publishes `repositories.json`, the list of watched repositories |
+| [agent-repo-catalog](https://github.com/agentic-gardening/agent-repo-catalog) | separate repository | publishes `repositories.json`, the list of watched repositories |
 | [agent-dep-detector](packages/agent-dep-detector) | [dep-detector.yml](.github/workflows/dep-detector.yml) | opens Epic/Task issues for outdated dependencies |
 | [agent-tasks-dispatcher](packages/agent-tasks-dispatcher) | [tasks-dispatcher.yml](.github/workflows/tasks-dispatcher.yml) | watches issues, moves labels, dispatches triage and fixer |
 | [agent-triage](packages/agent-triage) | [triage.yml](.github/workflows/triage.yml) | LLM agent that picks a fix strategy for an epic |

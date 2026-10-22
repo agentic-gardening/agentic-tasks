@@ -12,7 +12,7 @@ export interface Repository {
 
 export const CATALOG_URL = Symbol.for('techdebt.catalog-url');
 export const DEFAULT_CATALOG_URL =
-  'https://raw.githubusercontent.com/agentic-gardening/agentic-tasks/main/packages/agent-repo-catalog/repositories.json';
+  'https://raw.githubusercontent.com/agentic-gardening/agent-repo-catalog/main/repositories.json';
 
 @injectable()
 export class CatalogClient {
