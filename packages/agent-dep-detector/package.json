@@ -1,0 +1,51 @@
+{
+  "name": "agent-dep-detector",
+  "version": "0.1.0",
+  "description": "Detects outdated dev dependencies and opens Epic/Task issues in tasks",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "format:check": "biome format",
+    "format:fix": "biome format --write",
+    "lint:check": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@octokit/rest": "^22.0.1",
+    "inversify": "^8.2.3",
+    "reflect-metadata": "^0.2.2",
+    "semver": "^7.8.5",
+    "techdebt-common": "workspace:*",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@eslint/compat": "^2.1.1",
+    "@eslint/eslintrc": "^3.3.7",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24",
+    "@types/semver": "^7.8.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "@vitest/eslint-plugin": "^1.6.27",
+    "eslint": "^10.13.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-no-null": "^1.0.2",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "eslint-plugin-unicorn": "^78.0.0",
+    "globals": "^17.13.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.14.0+sha512.c18ba6d87993d3d164cb5e8948f32b2c06ee854487e06cd8d86781342fb3e5bb4634367034711e86802baa9c37bea906ce1929ad08d70884c97d801df13389a6"
+}

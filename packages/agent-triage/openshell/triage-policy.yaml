@@ -1,0 +1,41 @@
+# OpenShell sandbox policy for the triage job. Vertex egress (claude only) is added by the provider.
+# ponytail: postinstall downloads from other hosts (electron, playwright, ...) are blocked; add hosts when a repo needs them.
+version: 1
+
+filesystem_policy:
+  include_workdir: true
+  read_only:
+    - /usr
+    - /lib
+    - /proc
+    - /dev/urandom
+    - /etc
+    - /var/log
+  read_write:
+    - /sandbox
+    - /tmp
+    - /dev/null
+
+landlock:
+  compatibility: best_effort
+
+# pnpm and corepack run under node.
+network_policies:
+  packages:
+    name: packages
+    endpoints:
+      # scoped packages are fetched as @scope%2Fname: rest + allow_encoded_slash (OpenShell policy schema docs)
+      - host: registry.npmjs.org
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        access: read-only
+        allow_encoded_slash: true
+      - host: github.com
+        port: 443
+      - host: codeload.github.com
+        port: 443
+      - host: objects.githubusercontent.com
+        port: 443
+    binaries:
+      - { path: /usr/local/bin/node }

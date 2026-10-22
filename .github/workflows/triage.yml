@@ -1,0 +1,299 @@
+name: triage
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: epic issue number in agentic-gardening/agentic-tasks
+        required: true
+        type: string
+
+concurrency:
+  group: agent-triage-${{ inputs.issue }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+defaults:
+  run:
+    # each agent is a package of the monorepo
+    working-directory: packages/agent-triage
+
+jobs:
+  triage:
+    # Claude runs in an OpenShell sandbox (Podman driver) and reaches Vertex through GCP WIF, as in
+    # review-processing/review/.github/workflows/review.yaml and agent-fixer. GitHub tokens never enter
+    # the sandbox: clone, comment, relabel and the playbook PR happen on the host.
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 60
+    env:
+      ISSUE: ${{ inputs.issue }}
+      OPENSHELL_VERSION: '0.1.4'
+      # openshell_0.1.4-1_arm64.deb from openshell-checksums-sha256.txt of the v0.1.4 release
+      OPENSHELL_DEB_SHA256: 803939a059db6cc2a1ab38ff49e5c57e41b42549ac555130f13749d8ed6f46fb
+      # providers/google-vertex-ai.yaml at the v0.1.4 tag commit (pinned by sha, verified by hash)
+      OPENSHELL_PROFILE_URL: https://raw.githubusercontent.com/NVIDIA/OpenShell/5a7728c304b5528e954e9ae900cf21f84e1a12b1/providers/google-vertex-ai.yaml
+      OPENSHELL_PROFILE_SHA256: 96c5006fcbf7d6ec8f83dc75fad35f6ae1213573db14543ab06b570ddc9edaeb
+      # Built from review-processing/openshell-image (claude, node 24, pnpm, git). arm runner.
+      SANDBOX_IMAGE: ghcr.io/review-processing/openshell-image:12c5a8e9c2c6bc079755451f2e0b3b1bdffe4286@sha256:b22d18ec742d872a83a2259888b5c5414a8438ebb5e64ff8423dc61b411dd34a
+      TRIAGE_MODEL: claude-haiku-5-5
+      TRIAGE_TIMEOUT_SECS: 2700
+      # Mounted read-write into the sandbox at /sandbox/work: context, candidate/, dependabot PRs, playbook copy.
+      WORK: ${{ github.workspace }}/triage-work
+      ART_DIR: ${{ github.workspace }}/triage-logs
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # the playbook PR pushes with TECHDEBTY_TOKEN; a persisted GITHUB_TOKEN header would win
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Build triage context, clone candidate
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK"
+          node dist/context.js --issue "$ISSUE" --out triage-context.json
+          # The agent gets a copy: the report step reads the original.
+          cp triage-context.json "$WORK/"
+          cp docs/DEPENDENCY_FIX_PLAYBOOK.md "$WORK/playbook.md"
+          repo=$(jq -r '.candidate.repository // empty' triage-context.json)
+          branch=$(jq -r '.candidate.default_branch // empty' triage-context.json)
+          echo '[]' > "$WORK/dependabot-prs.json"
+          if [[ -n "$repo" ]]; then
+            git clone --depth 1 ${branch:+--branch "$branch"} "https://github.com/$repo.git" "$WORK/candidate"
+            gh pr list --repo "$repo" --author app/dependabot --state open --json number,title,url > "$WORK/dependabot-prs.json"
+          fi
+        env:
+          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          GH_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+
+      - name: Install OpenShell
+        run: |
+          set -euo pipefail
+          deb="openshell_${OPENSHELL_VERSION}-1_arm64.deb"
+          curl -fsSL -o "$RUNNER_TEMP/$deb" "https://github.com/NVIDIA/OpenShell/releases/download/v${OPENSHELL_VERSION}/$deb"
+          echo "$OPENSHELL_DEB_SHA256  $RUNNER_TEMP/$deb" | sha256sum -c -
+          sudo apt-get install -y "$RUNNER_TEMP/$deb"
+          openshell --version || true
+
+      # Bind mounts need driver config allowed and resource admission off (OpenShell docs: Podman Mounts).
+      - name: Start OpenShell gateway with the Podman driver
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.config/openshell
+          cat > ~/.config/openshell/gateway.toml <<'EOF'
+          [openshell]
+          version = 2
+
+          [openshell.gateway]
+          compute_driver = "podman"
+
+          [openshell.drivers.podman]
+          image_pull_policy = "if_not_present"
+          allow_driver_config = true
+          enable_bind_mounts = true
+
+          [openshell.drivers.podman.resource_admission]
+          enabled = false
+          EOF
+          # A lingering user manager provides XDG_RUNTIME_DIR and `systemctl --user`.
+          sudo loginctl enable-linger "$USER"
+          runtime_dir="/run/user/$(id -u)"
+          for _ in $(seq 30); do [[ -S "$runtime_dir/bus" ]] && break; sleep 1; done
+          export XDG_RUNTIME_DIR="$runtime_dir" DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus"
+          {
+            echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
+            echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
+          } >> "$GITHUB_ENV"
+          podman version --format 'Podman {{.Client.Version}}'
+          systemctl --user daemon-reload
+          systemctl --user enable --now podman.socket
+          systemctl --user enable --now openshell-gateway
+          added=false
+          for _ in $(seq 60); do
+            if [[ "$added" == false ]] && openshell gateway add https://127.0.0.1:17670 --local --name openshell; then
+              added=true
+            fi
+            if [[ "$added" == true ]] && openshell status 2>/dev/null | grep -q 'Version:'; then
+              openshell status
+              exit 0
+            fi
+            sleep 2
+          done
+          systemctl --user status openshell-gateway --no-pager || true
+          journalctl --user -u openshell-gateway --no-pager | tail -n 100 || true
+          exit 1
+
+      - name: Pull sandbox image
+        run: podman pull "$SANDBOX_IMAGE"
+
+      # The external_account file (workspace root, never mounted) is used by vertex-token.sh to mint fresh tokens.
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ secrets.AGENTIC_GCP_WIF_PROVIDER }}
+          project_id: ${{ secrets.AGENTIC_GCP_PROJECT_ID }}
+
+      # Only the gateway holds the token; the sandbox gets a placeholder resolved on egress to Vertex, for claude only.
+      - name: Register Vertex AI provider
+        env:
+          VERTEX_PROJECT: ${{ secrets.AGENTIC_GCP_PROJECT_ID }}
+          VERTEX_REGION: ${{ vars.AGENTIC_GCP_REGION }}
+        run: |
+          set -euo pipefail
+          GOOGLE_VERTEX_AI_TOKEN=$(bash scripts/vertex-token.sh "$GOOGLE_APPLICATION_CREDENTIALS")
+          echo "::add-mask::$GOOGLE_VERTEX_AI_TOKEN"
+          export GOOGLE_VERTEX_AI_TOKEN
+          profile="$RUNNER_TEMP/triage-google-vertex-ai.yaml"
+          curl -fsSL -o "$RUNNER_TEMP/google-vertex-ai.yaml" "$OPENSHELL_PROFILE_URL"
+          echo "$OPENSHELL_PROFILE_SHA256  $RUNNER_TEMP/google-vertex-ai.yaml" | sha256sum -c -
+          # The runner refreshes the token itself (see Run triage): drop the gateway refresh, use a stable placeholder.
+          yq '.display_name = "Google Vertex AI (triage)"
+              | .binaries = ["/usr/local/bin/claude"]
+              | (.credentials[] | select(.name == "gcloud_adc_token")) |= (del(.refresh) | .stable_placeholder = true)' \
+            "$RUNNER_TEMP/google-vertex-ai.yaml" > "$profile"
+          openshell provider profile lint -f "$profile"
+          openshell provider profile import -f "$profile" --global
+          openshell provider create --name vertex --type google-vertex-ai --global-profile \
+            --credential GOOGLE_VERTEX_AI_TOKEN \
+            --config "VERTEX_AI_PROJECT_ID=$VERTEX_PROJECT" \
+            --config "VERTEX_AI_REGION=$VERTEX_REGION"
+
+      # Egress beyond Vertex: npm registry and GitHub tarballs, for node only (openshell/triage-policy.yaml).
+      - name: Create sandbox
+        id: sandbox
+        run: |
+          set -euo pipefail
+          # The sandbox user is uid 1000: give it the workdir (given back to the runner after the run).
+          podman unshare chown -R 1000:1000 "$WORK"
+          name="triage-${ISSUE}" # OpenShell names are <= 19 chars; one gateway per runner, so no run id needed
+          mounts=$(jq -cn --arg src "$WORK" \
+            '{podman: {mounts: [{type: "bind", source: $src, target: "/sandbox/work", read_only: false}]}}')
+          openshell sandbox create --name "$name" --from "$SANDBOX_IMAGE" \
+            --policy openshell/triage-policy.yaml \
+            --provider vertex --no-auto-providers --detach --no-tty \
+            --driver-config-json "$mounts"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Run triage
+        env:
+          SANDBOX: ${{ steps.sandbox.outputs.name }}
+          JOB: Triage epic #${{ inputs.issue }} of agentic-gardening/agentic-tasks. Inputs are in /sandbox/work.
+        run: |
+          set -uo pipefail
+          set +e # keep going to record the exit code
+          mkdir -p "$ART_DIR"
+          # The stream is shaped by repository content: disable workflow commands with a token that never enters the sandbox.
+          stop_token=$(openssl rand -hex 16)
+          echo "::group::Triage agent (live)"
+          echo "::stop-commands::$stop_token"
+          # The federated Vertex token lives ~5 min: push a fresh one to the gateway every 3 min.
+          (
+            while sleep 180; do
+              if t=$(bash scripts/vertex-token.sh "$GOOGLE_APPLICATION_CREDENTIALS" 2>/dev/null) \
+                && GOOGLE_VERTEX_AI_TOKEN="$t" openshell provider update vertex --credential GOOGLE_VERTEX_AI_TOKEN --wait --timeout 60 >/dev/null 2>&1; then
+                echo "🔑 Vertex token refreshed"
+              else
+                echo "⚠️ Vertex token refresh failed"
+              fi
+            done
+          ) &
+          refresher=$!
+          # shellcheck disable=SC2016 # the inner script expands inside the sandbox, not here
+          timeout --kill-after=30 "$((TRIAGE_TIMEOUT_SECS + 60))" \
+            openshell sandbox exec -n "$SANDBOX" --timeout "$TRIAGE_TIMEOUT_SECS" --no-tty \
+              --env CLAUDE_CODE_USE_VERTEX=1 \
+              --env CLAUDE_CODE_SKIP_VERTEX_AUTH=1 \
+              --env CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
+              -- sh -c '
+                export ANTHROPIC_AUTH_TOKEN="${GOOGLE_VERTEX_AI_TOKEN:?Vertex provider token not injected}"
+                printf "[safe]\n\tdirectory = /sandbox/work/candidate\n" > /tmp/gitconfig
+                export GIT_CONFIG_GLOBAL=/tmp/gitconfig
+                cd /sandbox/work || exit 1
+                exec claude -p "$1" --append-system-prompt "$2" --model "$3" \
+                  --bare --setting-sources user --strict-mcp-config --no-session-persistence \
+                  --max-turns 120 \
+                  --permission-mode dontAsk \
+                  --allowedTools "Bash,Read,Edit,Write,Glob,Grep" \
+                  --disallowedTools "WebFetch,WebSearch" \
+                  --output-format stream-json --verbose
+              ' sh \
+              "$JOB" \
+              "$(cat prompts/triage.md)" \
+              "$TRIAGE_MODEL" \
+            2> "$ART_DIR/claude-stderr.txt" \
+            | tee "$ART_DIR/claude-output.jsonl" \
+            | jq -R -r --unbuffered -f scripts/stream.jq
+          code=${PIPESTATUS[0]}
+          kill "$refresher" 2>/dev/null || true
+          echo "::$stop_token::"
+          echo "::endgroup::"
+          echo "Triage agent exited with $code"
+          # Not fatal: the report step posts a fallback comment when no valid comment was written.
+
+      - name: Collect logs, delete sandbox
+        if: ${{ always() && steps.sandbox.outputs.name }}
+        env:
+          SANDBOX: ${{ steps.sandbox.outputs.name }}
+        run: |
+          mkdir -p "$ART_DIR"
+          openshell logs "$SANDBOX" -n 100000 > "$ART_DIR/sandbox.log" 2>&1 || true
+          journalctl --user -u openshell-gateway --no-pager > "$ART_DIR/gateway.log" 2>&1 || true
+          openshell sandbox delete "$SANDBOX" || true
+          podman unshare chown -R 0:0 "$WORK"
+          cp "$WORK/comment.md" "$ART_DIR/" 2>/dev/null || true
+
+      - name: Upload logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: triage-logs
+          path: ${{ env.ART_DIR }}
+          if-no-files-found: ignore
+
+      # Model output read untrusted repository content: validate it, decide labels here, not in the sandbox.
+      - name: Comment, relabel, playbook PR
+        if: ${{ !cancelled() && steps.sandbox.outputs.name }}
+        env:
+          GH_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+        run: |
+          set -euo pipefail
+          tasks=agentic-gardening/agentic-tasks
+          comment="$WORK/comment.md"
+          if [[ ! -f "$comment" ]] || (( $(stat -c %s "$comment") > 6144 )) || [[ "$(head -n1 "$comment")" != '<!-- triage -->' ]]; then
+            printf '<!-- triage -->\nstrategy: none\nfailing_step: none\nconfidence: 0\nnotes: |\n  triage agent produced no valid comment, see %s\n' "$RUN_URL" > "$comment"
+          fi
+          gh issue comment "$ISSUE" --repo "$tasks" --body-file "$comment"
+
+          strategy=$(awk '/^strategy:/ {print $2; exit}' "$comment")
+          confidence=$(awk '/^confidence:/ {print $2; exit}' "$comment")
+          label=state/needs-human
+          if [[ "$strategy" =~ ^[BC]$ ]] && awk -v c="$confidence" 'BEGIN {exit !(c + 0 >= 0.6)}'; then
+            label=state/ready
+          fi
+          gh issue edit "$ISSUE" --repo "$tasks" --remove-label state/triaging --add-label "$label"
+
+          if ! cmp -s "$WORK/playbook.md" docs/DEPENDENCY_FIX_PLAYBOOK.md; then
+            pkg=$(jq -r '.epic.block.package // "manual"' triage-context.json | tr -c 'A-Za-z0-9._\n-' '-')
+            target=$(jq -r '.epic.block.target // "epic"' triage-context.json | tr -c 'A-Za-z0-9._\n-' '-')
+            branch="playbook/${pkg}-${target}"
+            cp "$WORK/playbook.md" docs/DEPENDENCY_FIX_PLAYBOOK.md
+            git config user.name podman-desktop-bot
+            git config user.email podman-desktop-bot@users.noreply.github.com
+            git checkout -b "$branch"
+            git commit -s -am "docs(playbook): ${pkg} ${target} from triage of ${tasks}#${ISSUE}"
+            git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+            gh pr create --repo "$GITHUB_REPOSITORY" --head "$branch" \
+              --title "docs(playbook): ${pkg} ${target}" \
+              --body "New fix pattern found while triaging ${tasks}#${ISSUE} (${RUN_URL})." \
+              || echo "PR for $branch already exists"
+          fi

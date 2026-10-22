@@ -1,0 +1,19 @@
+{
+  "name": "agentic-tasks",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "format:check": "pnpm -r format:check",
+    "format:fix": "pnpm -r format:fix",
+    "lint:check": "pnpm -r lint:check",
+    "lint:fix": "pnpm -r lint:fix"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.14.0+sha512.c18ba6d87993d3d164cb5e8948f32b2c06ee854487e06cd8d86781342fb3e5bb4634367034711e86802baa9c37bea906ce1929ad08d70884c97d801df13389a6"
+}

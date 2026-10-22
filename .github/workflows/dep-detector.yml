@@ -1,0 +1,48 @@
+name: detect
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  push:
+    branches: [main]
+    paths: [packages/agent-dep-detector/**, packages/techdebt-common/src/**, .github/workflows/dep-detector.yml]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: only print what would be created
+        type: boolean
+        default: false
+
+concurrency:
+  group: agent-dep-detector
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    # each agent is a package of the monorepo
+    working-directory: packages/agent-dep-detector
+
+jobs:
+  detect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Detect outdated dependencies
+        # a push only dry-runs (no TASKS_TOKEN needed); schedule/dispatch do the real thing
+        run: node dist/entrypoint.js ${{ (github.event_name == 'push' || inputs.dry_run) && '--dry-run' || '' }}
+        env:
+          # GITHUB_TOKEN: push the state branch of this repository
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # TECHDEBTY_TOKEN (org secret, classic PAT of podman-desktop-bot, repo + workflow scopes)
+          READ_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
+          TASKS_TOKEN: ${{ secrets.TECHDEBTY_TOKEN }}
