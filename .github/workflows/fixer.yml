@@ -59,7 +59,7 @@ jobs:
     # review-processing/review/.github/workflows/review.yaml. GitHub tokens never enter the sandbox:
     # cloning, pushing and the PR happen on the host.
     runs-on: ubuntu-26.04-arm
-    timeout-minutes: 90
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       max-parallel: 3
@@ -74,7 +74,7 @@ jobs:
       # Built from review-processing/openshell-image (claude, node 24, pnpm, git). arm runner.
       SANDBOX_IMAGE: ghcr.io/review-processing/openshell-image:12c5a8e9c2c6bc079755451f2e0b3b1bdffe4286@sha256:b22d18ec742d872a83a2259888b5c5414a8438ebb5e64ff8423dc61b411dd34a
       FIX_MODEL: claude-opus-4-6
-      FIX_TIMEOUT_SECS: 4500
+      FIX_TIMEOUT_SECS: 1200
       # Mounted read-write into the sandbox at /sandbox/work: target/, a copy of the plan, the playbook.
       WORK: ${{ github.workspace }}/fix-work
       ART_DIR: ${{ github.workspace }}/fix-logs
