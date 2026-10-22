@@ -196,7 +196,7 @@ jobs:
             --config "VERTEX_AI_PROJECT_ID=$VERTEX_PROJECT" \
             --config "VERTEX_AI_REGION=$VERTEX_REGION"
 
-      # Egress beyond Vertex: npm registry and GitHub tarballs, for node only (openshell/fix-policy.yaml).
+      # Egress beyond Vertex: npm registry and GitHub tarballs, for node only (.github/openshell/sandbox-policy.yaml).
       - name: Create sandbox
         id: sandbox
         run: |
@@ -207,7 +207,7 @@ jobs:
           mounts=$(jq -cn --arg src "$WORK" \
             '{podman: {mounts: [{type: "bind", source: $src, target: "/sandbox/work", read_only: false}]}}')
           openshell sandbox create --name "$name" --from "$SANDBOX_IMAGE" \
-            --policy openshell/fix-policy.yaml \
+            --policy ../../.github/openshell/sandbox-policy.yaml \
             --provider vertex --no-auto-providers --detach --no-tty \
             --driver-config-json "$mounts"
           echo "name=$name" >> "$GITHUB_OUTPUT"
@@ -251,7 +251,7 @@ jobs:
                   --bare --setting-sources user --strict-mcp-config --no-session-persistence \
                   --max-turns 150 \
                   --permission-mode dontAsk \
-                  --allowedTools "Bash(pnpm:*),Bash(corepack:*),Bash(node:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(cat:*),Bash(ls:*),Bash(cd:*),Read,Edit,Write,Glob,Grep" \
+                  --allowedTools "Bash,Read,Edit,Write,Glob,Grep" \
                   --disallowedTools "WebFetch,WebSearch" \
                   --output-format stream-json --verbose
               ' sh \
