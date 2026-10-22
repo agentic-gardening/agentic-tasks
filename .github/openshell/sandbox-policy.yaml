@@ -1,4 +1,4 @@
-# OpenShell sandbox policy for the fix job. Vertex egress (claude only) is added by the provider.
+# OpenShell sandbox policy for the triage and fix jobs. Vertex egress (claude only) is added by the provider.
 # ponytail: postinstall downloads from other hosts (electron, playwright, ...) are blocked; add hosts when a repo needs them.
 version: 1
 
@@ -24,8 +24,13 @@ network_policies:
   packages:
     name: packages
     endpoints:
+      # scoped packages are fetched as @scope%2Fname: rest + allow_encoded_slash (OpenShell policy schema docs)
       - host: registry.npmjs.org
         port: 443
+        protocol: rest
+        enforcement: enforce
+        access: read-only
+        allow_encoded_slash: true
       - host: github.com
         port: 443
       - host: codeload.github.com

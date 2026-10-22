@@ -59,7 +59,7 @@ jobs:
     # review-processing/review/.github/workflows/review.yaml. GitHub tokens never enter the sandbox:
     # cloning, pushing and the PR happen on the host.
     runs-on: ubuntu-26.04-arm
-    timeout-minutes: 90
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       max-parallel: 3
@@ -74,7 +74,7 @@ jobs:
       # Built from review-processing/openshell-image (claude, node 24, pnpm, git). arm runner.
       SANDBOX_IMAGE: ghcr.io/review-processing/openshell-image:12c5a8e9c2c6bc079755451f2e0b3b1bdffe4286@sha256:b22d18ec742d872a83a2259888b5c5414a8438ebb5e64ff8423dc61b411dd34a
       FIX_MODEL: claude-opus-4-6
-      FIX_TIMEOUT_SECS: 4500
+      FIX_TIMEOUT_SECS: 1200
       # Mounted read-write into the sandbox at /sandbox/work: target/, a copy of the plan, the playbook.
       WORK: ${{ github.workspace }}/fix-work
       ART_DIR: ${{ github.workspace }}/fix-logs
@@ -196,7 +196,7 @@ jobs:
             --config "VERTEX_AI_PROJECT_ID=$VERTEX_PROJECT" \
             --config "VERTEX_AI_REGION=$VERTEX_REGION"
 
-      # Egress beyond Vertex: npm registry and GitHub tarballs, for node only (openshell/fix-policy.yaml).
+      # Egress beyond Vertex: npm registry and GitHub tarballs, for node only (.github/openshell/sandbox-policy.yaml).
       - name: Create sandbox
         id: sandbox
         run: |
@@ -207,7 +207,7 @@ jobs:
           mounts=$(jq -cn --arg src "$WORK" \
             '{podman: {mounts: [{type: "bind", source: $src, target: "/sandbox/work", read_only: false}]}}')
           openshell sandbox create --name "$name" --from "$SANDBOX_IMAGE" \
-            --policy openshell/fix-policy.yaml \
+            --policy ../../.github/openshell/sandbox-policy.yaml \
             --provider vertex --no-auto-providers --detach --no-tty \
             --driver-config-json "$mounts"
           echo "name=$name" >> "$GITHUB_OUTPUT"
@@ -251,7 +251,7 @@ jobs:
                   --bare --setting-sources user --strict-mcp-config --no-session-persistence \
                   --max-turns 150 \
                   --permission-mode dontAsk \
-                  --allowedTools "Bash(pnpm:*),Bash(corepack:*),Bash(node:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(cat:*),Bash(ls:*),Bash(cd:*),Read,Edit,Write,Glob,Grep" \
+                  --allowedTools "Bash,Read,Edit,Write,Glob,Grep" \
                   --disallowedTools "WebFetch,WebSearch" \
                   --output-format stream-json --verbose
               ' sh \
