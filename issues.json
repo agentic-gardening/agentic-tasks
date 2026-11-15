@@ -5,5 +5,6 @@
   "[dep] eslint -> 10.13.0": 10,
   "[dep] vitest -> 5": 12,
   "[dep] pnpm -> 12": 14,
-  "[dep] eslint-plugin-unicorn -> 79": 17
+  "[dep] eslint-plugin-unicorn -> 79": 17,
+  "[dep] eslint-plugin-unicorn -> 80": 25
 }
