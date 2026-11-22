@@ -7,5 +7,6 @@
   "[dep] pnpm -> 12": 14,
   "[dep] eslint-plugin-unicorn -> 79": 17,
   "[dep] eslint-plugin-unicorn -> 80": 25,
-  "[dep] globals -> 17.14.0": 28
+  "[dep] globals -> 17.14.0": 28,
+  "[dep] semver -> 7.8.6": 30
 }
